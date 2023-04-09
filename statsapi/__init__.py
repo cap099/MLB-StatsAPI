@@ -28,6 +28,8 @@ BASE_URL = endpoints.BASE_URL
 """Base MLB Stats API URL"""
 ENDPOINTS = endpoints.ENDPOINTS
 """MLB Stats API endpoint configuration"""
+DEBUG = False
+"""Debug Parameter for verbosity"""
 
 logger = logging.getLogger("statsapi")
 
@@ -1622,7 +1624,8 @@ def get(endpoint, params, force=False):
         raise ValueError("Invalid endpoint (" + str(endpoint) + ").")
 
     url = ep["url"]
-    logger.debug("URL: {}".format(url))
+    if DEBUG:
+        logger.debug("URL: {}".format(url))
 
     path_params = {}
     query_params = {}
@@ -1630,7 +1633,8 @@ def get(endpoint, params, force=False):
     # Parse parameters into path and query parameters, and discard invalid parameters
     for p, pv in params.items():
         if ep["path_params"].get(p):
-            logger.debug("Found path param: {}".format(p))
+            if DEBUG:
+                logger.debug("Found path param: {}".format(p))
             if ep["path_params"][p].get("type") == "bool":
                 if str(pv).lower() == "false":
                     path_params.update({p: ep["path_params"][p].get("False", "")})
@@ -1639,7 +1643,8 @@ def get(endpoint, params, force=False):
             else:
                 path_params.update({p: str(pv)})
         elif p in ep["query_params"]:
-            logger.debug("Found query param: {}".format(p))
+            if DEBUG:
+                logger.debug("Found query param: {}".format(p))
             query_params.update({p: str(pv)})
         else:
             if force:
@@ -1650,21 +1655,25 @@ def get(endpoint, params, force=False):
                 )
                 query_params.update({p: str(pv)})
             else:
-                logger.debug("Found invalid param, ignoring: {}".format(p))
+                if DEBUG:
+                    logger.debug("Found invalid param, ignoring: {}".format(p))
 
-    logger.debug("path_params: {}".format(path_params))
-    logger.debug("query_params: {}".format(query_params))
+    if DEBUG:
+        logger.debug("path_params: {}".format(path_params))
+        logger.debug("query_params: {}".format(query_params))
 
     # Replace path parameters with their values
     for k, v in path_params.items():
-        logger.debug("Replacing {%s}" % k)
+        if DEBUG:
+            logger.debug("Replacing {%s}" % k)
         url = url.replace(
             "{" + k + "}",
             ("/" if ep["path_params"][k]["leading_slash"] else "")
             + v
             + ("/" if ep["path_params"][k]["trailing_slash"] else ""),
         )
-        logger.debug("URL: {}".format(url))
+        if DEBUG:
+            logger.debug("URL: {}".format(url))
 
     while url.find("{") != -1 and url.find("}") > url.find("{"):
         param = url[url.find("{") + 1 : url.find("}")]
@@ -1672,11 +1681,12 @@ def get(endpoint, params, force=False):
             if (
                 ep["path_params"][param]["default"]
                 and ep["path_params"][param]["default"] != ""
-            ):
-                logger.debug(
-                    "Replacing {%s} with default: %s."
-                    % (param, ep["path_params"][param]["default"])
-                )
+            ):  
+                if DEBUG:
+                    logger.debug(
+                        "Replacing {%s} with default: %s."
+                        % (param, ep["path_params"][param]["default"])
+                    )
                 url = url.replace(
                     "{" + param + "}", ep["path_params"][param]["default"]
                 )
@@ -1689,17 +1699,20 @@ def get(endpoint, params, force=False):
                 else:
                     raise ValueError("Missing required path parameter {%s}" % param)
         else:
-            logger.debug("Removing optional param {%s}" % param)
+            if DEBUG:
+                logger.debug("Removing optional param {%s}" % param)
             url = url.replace("{" + param + "}", "")
-
-        logger.debug("URL: {}".format(url))
+        if DEBUG:
+            logger.debug("URL: {}".format(url))
     # Add query parameters to the URL
     if len(query_params) > 0:
         for k, v in query_params.items():
-            logger.debug("Adding query parameter {}={}".format(k, v))
+            if DEBUG:
+                logger.debug("Adding query parameter {}={}".format(k, v))
             sep = "?" if url.find("?") == -1 else "&"
             url += sep + k + "=" + v
-            logger.debug("URL: {}".format(url))
+            if DEBUG:
+                logger.debug("URL: {}".format(url))
 
     # Make sure required parameters are present
     satisfied = False
